@@ -4,7 +4,7 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 -->
 
 <p align="center">
-  <img src="https://avatars.githubusercontent.com/u/91797844?v=4" alt=">troubleshoot.dev Logo" width="160">
+  <img src="./assets/troubleshoot-dev-logo.png" alt=">troubleshoot.dev Logo" width="160">
 </p>
 
 <h1 align="center">
