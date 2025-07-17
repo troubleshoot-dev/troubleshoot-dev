@@ -137,8 +137,8 @@ if [[ "${DISABLE_UPDATE}" != "yes" ]]; then
   setpath "product" "downloadUrl" "https://github.com/troubleshoot-dev/troubleshoot-dev/releases"
 fi
 
-setpath "product" "nameShort" "troubleshoot.dev"
-setpath "product" "nameLong" "troubleshoot.dev"
+setpath "product" "nameShort" ">troubleshoot.dev"
+setpath "product" "nameLong" ">troubleshoot.dev"
 setpath "product" "applicationName" "troubleshoot-dev"
 setpath "product" "linuxIconName" "troubleshoot-dev"
 setpath "product" "quality" "stable"
@@ -176,8 +176,8 @@ replace 's|Microsoft Corporation|troubleshoot.dev|' package.json
 
 cp resources/server/manifest.json{,.bak}
 
-setpath "resources/server/manifest" "name" "troubleshoot.dev"
-setpath "resources/server/manifest" "short_name" "troubleshoot.dev"
+setpath "resources/server/manifest" "name" ">troubleshoot.dev"
+setpath "resources/server/manifest" "short_name" ">troubleshoot.dev"
 
 # announcements
 replace "s|\\[\\/\\* BUILTIN_ANNOUNCEMENTS \\*\\/\\]|$( tr -d '\n' < ../announcements-builtin.json )|" src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts

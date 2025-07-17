@@ -26,7 +26,7 @@ on:
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-  APP_NAME: troubleshoot.dev
+  APP_NAME: >troubleshoot.dev
   ASSETS_REPOSITORY: ${{ github.repository }}
   BINARY_NAME: troubleshoot-dev
   DISABLE_UPDATE: 'yes'

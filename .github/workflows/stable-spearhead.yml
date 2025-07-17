@@ -19,7 +19,7 @@ jobs:
   build:
     runs-on: macos-14
     env:
-      APP_NAME: troubleshoot.dev
+      APP_NAME: >troubleshoot.dev
       ASSETS_REPOSITORY: ${{ github.repository }}
       BINARY_NAME: troubleshoot-dev
       GH_REPO_PATH: ${{ github.repository }}

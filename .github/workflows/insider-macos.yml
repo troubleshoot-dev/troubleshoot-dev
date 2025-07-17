@@ -25,7 +25,7 @@ on:
     - '**/*.md'
 
 env:
-  APP_NAME: troubleshoot.dev
+  APP_NAME: >troubleshoot.dev
   ASSETS_REPOSITORY: ${{ github.repository }}-insiders
   BINARY_NAME: troubleshoot-dev-insiders
   GITHUB_BRANCH: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'insider' }}
