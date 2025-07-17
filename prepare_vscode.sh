@@ -200,7 +200,7 @@ if [[ "${OS_NAME}" == "linux" ]]; then
   # code.appdata.xml
   sed -i 's|Visual Studio Code|troubleshoot.dev|g' resources/linux/code.appdata.xml
   sed -i 's|https://code.visualstudio.com/docs/setup/linux|https://github.com/troubleshoot-dev/troubleshoot-dev#download-install|' resources/linux/code.appdata.xml
-  sed -i 's|https://code.visualstudio.com/home/home-screenshot-linux-lg.png|https://troubleshoot.dev/img/troubleshoot-dev.png|' resources/linux/code.appdata.xml
+  sed -i 's|https://code.visualstudio.com/home/home-screenshot-linux-lg.png|https://troubleshoot.dev/img/troubleshoot-dev-logo.png|' resources/linux/code.appdata.xml
   sed -i 's|https://code.visualstudio.com|https://troubleshoot.dev|' resources/linux/code.appdata.xml
 
   # control.template
