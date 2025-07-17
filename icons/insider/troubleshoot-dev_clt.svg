@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <rect width="200" height="200" fill="#000000"/>
-  <!-- Command prompt symbol ">" -->
-  <path d="M20 60 L20 80 L80 100 L20 120 L20 140 L100 110 L100 90 Z" fill="#ffffff"/>
-  <!-- Letter "t" -->
-  <path d="M120 40 L180 40 L180 60 L160 60 L160 160 L160 180 Q160 190 150 190 L140 190 Q130 190 130 180 L130 160 L130 60 L120 60 Z" fill="#ffffff"/>
+  <!-- Command prompt symbol ">" - more accurate proportions -->
+  <path d="M30 50 L30 70 L90 100 L30 130 L30 150 L120 110 L120 90 Z" fill="#ffffff"/>
+  <!-- Letter "t" - better proportions and rounded bottom -->
+  <path d="M130 30 L190 30 L190 50 L170 50 L170 140 L170 160 Q170 175 155 175 L145 175 Q130 175 130 160 L130 140 L130 50 Z" fill="#ffffff"/>
 </svg>
