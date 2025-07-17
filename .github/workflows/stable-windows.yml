@@ -25,9 +25,9 @@ on:
     - '**/*.md'
 
 env:
-  APP_NAME: VSCodium
+  APP_NAME: troubleshoot.dev
   ASSETS_REPOSITORY: ${{ github.repository }}
-  BINARY_NAME: codium
+  BINARY_NAME: troubleshoot-dev
   GH_REPO_PATH: ${{ github.repository }}
   ORG_NAME: ${{ github.repository_owner }}
   OS_NAME: windows
@@ -275,7 +275,7 @@ jobs:
       run:
         shell: bash
     env:
-      APP_IDENTIFIER: VSCodium.VSCodium
+      APP_IDENTIFIER: troubleshoot-dev.troubleshoot-dev
     if: needs.build.outputs.SHOULD_DEPLOY == 'yes'
 
     steps:
