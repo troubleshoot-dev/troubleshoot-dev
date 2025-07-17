@@ -10,7 +10,9 @@ import { LifecyclePhase } from 'vs/workbench/services/lifecycle/common/lifecycle
 import { IAIService } from 'vs/workbench/contrib/ai/common/aiService';
 import { AIService } from 'vs/workbench/contrib/ai/browser/aiService';
 import { AIProviderRegistry, IAIProviderRegistry } from 'vs/workbench/contrib/ai/common/aiProviderRegistry';
-import { AISettingsContribution } from 'vs/workbench/contrib/ai/browser/aiSettings';
+import { APIKeyManager, IAPIKeyManager } from './apiKeyManager';
+import { APIKeyTester, IAPIKeyTester } from './apiKeyTester';
+import { AISettingsContribution } from './aiSettings';
 import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
 import { ICommandService } from 'vs/platform/commands/common/commands';
 import { CommandsRegistry } from 'vs/platform/commands/common/commands';
@@ -20,6 +22,8 @@ import { localize } from 'vs/nls';
 // Register services
 registerSingleton(IAIService, AIService, true);
 registerSingleton(IAIProviderRegistry, AIProviderRegistry, true);
+registerSingleton(IAPIKeyManager, APIKeyManager, true);
+registerSingleton(IAPIKeyTester, APIKeyTester, true);
 
 // Register workbench contributions
 const workbenchRegistry = Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench);
@@ -48,4 +52,19 @@ CommandsRegistry.registerCommand('troubleshoot.ai.testConnection', async (access
 CommandsRegistry.registerCommand('troubleshoot.ai.detectApiKeyProvider', async (accessor: ServicesAccessor) => {
     const commandService = accessor.get(ICommandService);
     return commandService.executeCommand('troubleshoot.ai.detectApiKeyProvider');
+});
+
+CommandsRegistry.registerCommand('troubleshoot.ai.testAllKeys', async (accessor: ServicesAccessor) => {
+    const apiKeyTester = accessor.get(IAPIKeyTester);
+    return apiKeyTester.testAllConfiguredKeys();
+});
+
+CommandsRegistry.registerCommand('troubleshoot.ai.testSpecificKey', async (accessor: ServicesAccessor, providerId: string, apiKey: string) => {
+    const apiKeyTester = accessor.get(IAPIKeyTester);
+    return apiKeyTester.testApiKey(providerId, apiKey);
+});
+
+CommandsRegistry.registerCommand('troubleshoot.ai.getProviderInfo', async (accessor: ServicesAccessor, providerId: string) => {
+    const apiKeyTester = accessor.get(IAPIKeyTester);
+    return apiKeyTester.getProviderTestInfo(providerId);
 });

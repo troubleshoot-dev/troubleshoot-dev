@@ -16,6 +16,8 @@ import { INotificationService, Severity } from 'vs/platform/notification/common/
 import { IQuickInputService, IQuickPickItem } from 'vs/platform/quickinput/common/quickInput';
 import { IStorageService, StorageScope, StorageTarget } from 'vs/platform/storage/common/storage';
 import { IExtensionService } from 'vs/workbench/services/extensions/common/extensions';
+import { IAPIKeyManager } from 'vs/workbench/contrib/ai/browser/apiKeyManager';
+import { IAPIKeyTester } from 'vs/workbench/contrib/ai/browser/apiKeyTester';
 
 export class AISettingsContribution extends Disposable implements IWorkbenchContribution {
     private static readonly API_KEY_STORAGE_PREFIX = 'troubleshoot.ai.apiKey.';
@@ -28,7 +30,9 @@ export class AISettingsContribution extends Disposable implements IWorkbenchCont
         @INotificationService private readonly notificationService: INotificationService,
         @IQuickInputService private readonly quickInputService: IQuickInputService,
         @IStorageService private readonly storageService: IStorageService,
-        @IExtensionService private readonly extensionService: IExtensionService
+        @IExtensionService private readonly extensionService: IExtensionService,
+        @IAPIKeyManager private readonly apiKeyManager: IAPIKeyManager,
+        @IAPIKeyTester private readonly apiKeyTester: IAPIKeyTester
     ) {
         super();
         this.registerSettings();
@@ -288,24 +292,156 @@ export class AISettingsContribution extends Disposable implements IWorkbenchCont
             });
             
             if (input) {
-                const providerId = await this.providerRegistry.detectProvider(input);
-                if (providerId) {
-                    const provider = this.providerRegistry.getProvider(providerId);
-                    this.notificationService.info(`API key detected as ${provider?.name}`);
+                this.notificationService.info('Detecting provider...');
+                
+                const testResult = await this.apiKeyTester.testAndDetectProvider(input);
+                if (testResult && testResult.isValid) {
+                    this.notificationService.info(`API key detected as ${testResult.providerName} (${testResult.responseTime}ms)`);
                     
                     const setKey = 'Set API Key';
                     const result = await this.notificationService.prompt(
                         Severity.Info,
-                        `Would you like to set this API key for ${provider?.name}?`,
+                        `Would you like to set this API key for ${testResult.providerName}?`,
                         [{ label: setKey }]
                     );
                     
                     if (result.choice?.label === setKey) {
-                        await this.storeApiKey(providerId, input);
-                        await this.configurationService.updateValue('troubleshoot.ai.provider', providerId);
+                        await this.apiKeyManager.storeApiKey(testResult.providerId, input);
+                        await this.configurationService.updateValue('troubleshoot.ai.provider', testResult.providerId);
+                        this.notificationService.info(`${testResult.providerName} is now configured and active`);
                     }
                 } else {
-                    this.notificationService.error('Could not detect provider for this API key');
+                    this.notificationService.error('Could not detect or validate provider for this API key');
+                }
+            }
+        }));
+        
+        // Enhanced commands using new services
+        this._register(this.commandService.registerCommand('troubleshoot.ai.testAllConnections', async () => {
+            this.notificationService.info('Testing all configured API keys...');
+            
+            const results = await this.apiKeyTester.testAllConfiguredKeys();
+            const validCount = results.filter(r => r.isValid).length;
+            const totalCount = results.length;
+            
+            if (totalCount === 0) {
+                this.notificationService.info('No API keys configured to test');
+                return;
+            }
+            
+            const summary = `${validCount}/${totalCount} API keys are valid`;
+            if (validCount === totalCount) {
+                this.notificationService.info(`✅ ${summary}`);
+            } else {
+                this.notificationService.warn(`⚠️ ${summary}`);
+            }
+            
+            // Show detailed results
+            for (const result of results) {
+                const status = result.isValid ? '✅' : '❌';
+                const time = result.responseTime ? ` (${result.responseTime}ms)` : '';
+                const message = `${status} ${result.providerName}${time}`;
+                
+                if (result.isValid) {
+                    this.logService.info(message);
+                } else {
+                    this.logService.warn(`${message}: ${result.error}`);
+                }
+            }
+        }));
+        
+        this._register(this.commandService.registerCommand('troubleshoot.ai.manageApiKeys', async () => {
+            const configuredProviders = await this.apiKeyManager.getConfiguredProviders();
+            const allProviders = this.providerRegistry.getAllProviders().filter(p => p.requiresApiKey);
+            
+            const items: IQuickPickItem[] = [
+                {
+                    label: '$(add) Add New API Key',
+                    description: 'Configure a new AI provider',
+                    detail: 'Set up API key for a new provider'
+                },
+                {
+                    label: '$(testing-run-icon) Test All Keys',
+                    description: 'Test all configured API keys',
+                    detail: `Test ${configuredProviders.length} configured providers`
+                },
+                {
+                    label: '$(search) Auto-Detect Provider',
+                    description: 'Detect provider from API key',
+                    detail: 'Paste an API key to automatically detect its provider'
+                }
+            ];
+            
+            // Add configured providers
+            if (configuredProviders.length > 0) {
+                items.push({ label: '', kind: -1 } as any); // Separator
+                
+                for (const providerId of configuredProviders) {
+                    const provider = this.providerRegistry.getProvider(providerId);
+                    if (provider) {
+                        items.push({
+                            label: `$(key) ${provider.name}`,
+                            description: 'Configured',
+                            detail: 'Test, update, or remove API key'
+                        });
+                    }
+                }
+            }
+            
+            const selected = await this.quickInputService.pick(items, {
+                placeHolder: 'Manage AI Provider API Keys'
+            });
+            
+            if (selected) {
+                if (selected.label.includes('Add New API Key')) {
+                    await this.commandService.executeCommand('troubleshoot.ai.setApiKey');
+                } else if (selected.label.includes('Test All Keys')) {
+                    await this.commandService.executeCommand('troubleshoot.ai.testAllConnections');
+                } else if (selected.label.includes('Auto-Detect Provider')) {
+                    await this.commandService.executeCommand('troubleshoot.ai.detectApiKeyProvider');
+                } else {
+                    // Handle specific provider management
+                    const providerName = selected.label.replace('$(key) ', '');
+                    const provider = allProviders.find(p => p.name === providerName);
+                    if (provider) {
+                        await this.manageProviderApiKey(provider.id);
+                    }
+                }
+            }
+        }));
+        
+        this._register(this.commandService.registerCommand('troubleshoot.ai.showProviderInfo', async () => {
+            const providers = this.providerRegistry.getAllProviders();
+            const items: IQuickPickItem[] = providers.map(provider => ({
+                label: provider.name,
+                description: provider.description,
+                detail: `${provider.requiresApiKey ? 'API Key Required' : 'No API Key'} • ${provider.models.length} models`
+            }));
+            
+            const selected = await this.quickInputService.pick(items, {
+                placeHolder: 'Select AI provider to view information'
+            });
+            
+            if (selected) {
+                const provider = providers.find(p => p.name === selected.label);
+                if (provider) {
+                    const info = await this.apiKeyTester.getProviderTestInfo(provider.id);
+                    if (info) {
+                        const details = [
+                            `**${info.name}**`,
+                            `${info.description}`,
+                            '',
+                            `**Setup:**`,
+                            info.setupInstructions,
+                            '',
+                            `**Details:**`,
+                            `• API Key Required: ${info.requiresApiKey ? 'Yes' : 'No'}`,
+                            `• Test Endpoint: ${info.testEndpoint}`,
+                            info.apiKeyPattern ? `• Key Pattern: ${info.apiKeyPattern}` : ''
+                        ].filter(Boolean).join('\n');
+                        
+                        this.notificationService.info(details);
+                    }
                 }
             }
         }));
@@ -405,33 +541,107 @@ export class AISettingsContribution extends Disposable implements IWorkbenchCont
         this.notificationService.info(`Testing connection to ${provider.name}...`);
         
         try {
-            if (provider.requiresApiKey) {
-                const apiKey = await this.getApiKey(providerId);
-                if (!apiKey) {
-                    this.notificationService.error(`No API key found for ${provider.name}`);
-                    return;
-                }
-                
-                const isValid = await provider.validateApiKey(apiKey);
-                if (isValid) {
-                    this.notificationService.info(`Successfully connected to ${provider.name}`);
-                } else {
-                    this.notificationService.error(`Failed to connect to ${provider.name}. Invalid API key.`);
-                }
-            } else if (provider.isLocal) {
-                // For local providers like Ollama, test the connection to the local server
-                const isValid = await provider.validateApiKey('');
-                if (isValid) {
-                    this.notificationService.info(`Successfully connected to ${provider.name}`);
-                } else {
-                    this.notificationService.error(`Failed to connect to ${provider.name}. Is the local server running?`);
-                }
+            // Use the enhanced API Key Tester for better feedback
+            const apiKey = await this.apiKeyManager.getApiKey(providerId);
+            if (provider.requiresApiKey && !apiKey) {
+                this.notificationService.error(`No API key found for ${provider.name}`);
+                return;
+            }
+            
+            const result = await this.apiKeyTester.testApiKey(providerId, apiKey || '');
+            
+            if (result.isValid) {
+                const details = result.responseTime ? ` (${result.responseTime}ms)` : '';
+                const models = result.details?.availableModels ? ` • ${result.details.availableModels.length} models available` : '';
+                this.notificationService.info(`✅ Successfully connected to ${provider.name}${details}${models}`);
             } else {
-                this.notificationService.info(`${provider.name} does not require connection testing`);
+                this.notificationService.error(`❌ Failed to connect to ${provider.name}: ${result.error}`);
             }
         } catch (error) {
             this.logService.error(`Error testing connection to ${provider.name}`, error);
-            this.notificationService.error(`Error testing connection to ${provider.name}: ${error.message}`);
+            this.notificationService.error(`Error testing connection to ${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+    
+    private async manageProviderApiKey(providerId: string): Promise<void> {
+        const provider = this.providerRegistry.getProvider(providerId);
+        if (!provider) {
+            return;
+        }
+        
+        const hasApiKey = await this.apiKeyManager.hasApiKey(providerId);
+        
+        const items: IQuickPickItem[] = [
+            {
+                label: '$(testing-run-icon) Test Connection',
+                description: 'Test the current API key',
+                detail: hasApiKey ? 'Test if the API key is working' : 'No API key configured'
+            },
+            {
+                label: '$(edit) Update API Key',
+                description: 'Change the API key',
+                detail: hasApiKey ? 'Replace the current API key' : 'Set a new API key'
+            }
+        ];
+        
+        if (hasApiKey) {
+            items.push({
+                label: '$(trash) Remove API Key',
+                description: 'Delete the stored API key',
+                detail: 'This will remove the API key from secure storage'
+            });
+        }
+        
+        items.push({
+            label: '$(info) Provider Information',
+            description: 'View setup instructions and details',
+            detail: 'Get help with configuring this provider'
+        });
+        
+        const selected = await this.quickInputService.pick(items, {
+            placeHolder: `Manage ${provider.name} API Key`
+        });
+        
+        if (selected) {
+            if (selected.label.includes('Test Connection')) {
+                await this.testConnection(providerId);
+            } else if (selected.label.includes('Update API Key')) {
+                await this.setApiKey(providerId);
+            } else if (selected.label.includes('Remove API Key')) {
+                const confirm = await this.quickInputService.pick([
+                    { label: 'Yes, remove it', description: 'Delete the API key' },
+                    { label: 'Cancel', description: 'Keep the API key' }
+                ], {
+                    placeHolder: `Are you sure you want to remove the API key for ${provider.name}?`
+                });
+                
+                if (confirm?.label.includes('Yes')) {
+                    await this.apiKeyManager.deleteApiKey(providerId);
+                    this.notificationService.info(`API key for ${provider.name} has been removed`);
+                }
+            } else if (selected.label.includes('Provider Information')) {
+                const info = await this.apiKeyTester.getProviderTestInfo(providerId);
+                if (info) {
+                    const details = [
+                        `**${info.name}**`,
+                        `${info.description}`,
+                        '',
+                        `**Setup Instructions:**`,
+                        info.setupInstructions,
+                        '',
+                        `**Technical Details:**`,
+                        `• API Key Required: ${info.requiresApiKey ? 'Yes' : 'No'}`,
+                        `• Test Endpoint: ${info.testEndpoint}`,
+                        info.apiKeyPattern ? `• Key Pattern: ${info.apiKeyPattern}` : '',
+                        '',
+                        `**Available Models:**`,
+                        provider.models.map(m => `• ${m.name} (${m.id})`).join('\n')
+                    ].filter(Boolean).join('\n');
+                    
+                    // Show in a more detailed way
+                    this.notificationService.info(details);
+                }
+            }
         }
     }
 }

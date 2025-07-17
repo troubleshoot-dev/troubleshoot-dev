@@ -11,6 +11,7 @@ import { ILogService } from 'vs/platform/log/common/log';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
 import { IAIProviderRegistry } from 'vs/workbench/contrib/ai/common/aiProviderRegistry';
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
+import { IAPIKeyManager } from 'vs/workbench/contrib/ai/browser/apiKeyManager';
 
 export class AIService extends Disposable implements IAIService {
 	declare readonly _serviceBrand: undefined;
@@ -25,7 +26,8 @@ export class AIService extends Disposable implements IAIService {
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ILogService private readonly logService: ILogService,
 		@IAIProviderRegistry private readonly providerRegistry: IAIProviderRegistry,
-		@IStorageService private readonly storageService: IStorageService
+		@IStorageService private readonly storageService: IStorageService,
+		@IAPIKeyManager private readonly apiKeyManager: IAPIKeyManager
 	) {
 		super();
 		this._initializeProviders();
@@ -214,14 +216,15 @@ export class AIService extends Disposable implements IAIService {
 
 		// Get provider-specific configuration
 		const providerConfig = config?.[providerId] || {};
-		const apiKey = providerConfig.apiKey || config?.apiKey; // Fallback to legacy apiKey
+		const apiKey = await this.apiKeyManager.getApiKey(providerId) || providerConfig.apiKey || config?.apiKey; // Use API Key Manager first
 		const model = providerConfig.model || config?.model || this._getDefaultModel(providerId);
 		const temperature = config?.temperature || 0.7;
 		const maxTokens = config?.maxTokens || 2000;
 		const timeout = config?.requestTimeout || 30000;
 		
-		// Check if API key is required
-		if (!apiKey && !['local', 'ollama'].includes(providerId)) {
+		// Get provider info to check if API key is required
+		const provider = this.providerRegistry.getProvider(providerId);
+		if (provider?.requiresApiKey && !apiKey) {
 			throw new Error(`API key required for ${this._activeProvider?.name}. Please configure it in settings.`);
 		}
 
@@ -237,6 +240,8 @@ export class AIService extends Disposable implements IAIService {
 			switch (providerId) {
 				case 'openai':
 					return await this._callOpenAI(type, data, requestOptions);
+				case 'azure-openai':
+					return await this._callAzureOpenAI(type, data, requestOptions);
 				case 'anthropic':
 					return await this._callAnthropic(type, data, requestOptions);
 				case 'gemini':
@@ -245,6 +250,28 @@ export class AIService extends Disposable implements IAIService {
 					return await this._callMistral(type, data, requestOptions);
 				case 'ollama':
 					return await this._callOllama(type, data, requestOptions);
+				case 'cohere':
+					return await this._callCohere(type, data, requestOptions);
+				case 'openrouter':
+					return await this._callOpenRouter(type, data, requestOptions);
+				case 'together':
+					return await this._callTogether(type, data, requestOptions);
+				case 'groq':
+					return await this._callGroq(type, data, requestOptions);
+				case 'huggingface':
+					return await this._callHuggingFace(type, data, requestOptions);
+				case 'deepinfra':
+					return await this._callDeepInfra(type, data, requestOptions);
+				case 'perplexity':
+					return await this._callPerplexity(type, data, requestOptions);
+				case 'replicate':
+					return await this._callReplicate(type, data, requestOptions);
+				case 'ai21':
+					return await this._callAI21(type, data, requestOptions);
+				case 'fireworks':
+					return await this._callFireworks(type, data, requestOptions);
+				case 'github-copilot':
+					return await this._callGitHubCopilot(type, data, requestOptions);
 				case 'local':
 					return await this._callLocalModel(type, data, requestOptions);
 				default:
@@ -429,6 +456,363 @@ export class AIService extends Disposable implements IAIService {
 
 		const result = await response.json();
 		return result.response || 'No response from Ollama';
+	}
+
+	private async _callAzureOpenAI(type: string, data: any, options: any): Promise<string> {
+		const config = this.configurationService.getValue<any>('troubleshoot.ai');
+		const azureConfig = config?.['azure-openai'] || {};
+		const endpoint = azureConfig.endpoint || 'https://your-resource.openai.azure.com';
+		const apiVersion = azureConfig.apiVersion || '2023-12-01-preview';
+		const deploymentName = azureConfig.deploymentName || options.model;
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(`${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`, {
+			method: 'POST',
+			headers: {
+				'api-key': options.apiKey,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Azure OpenAI API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from Azure OpenAI';
+	}
+
+	private async _callCohere(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.cohere.ai/v1/generate';
+		
+		const prompt = type === 'chat' ? 
+			data.messages.map((m: any) => `${m.role}: ${m.content}`).join('\n') :
+			this._buildPromptForType(type, data);
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model || 'command',
+				prompt,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Cohere API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.generations[0]?.text || 'No response from Cohere';
+	}
+
+	private async _callOpenRouter(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json',
+				'HTTP-Referer': 'https://troubleshoot.dev',
+				'X-Title': 'Troubleshoot Dev'
+			},
+			body: JSON.stringify({
+				model: options.model || 'openai/gpt-3.5-turbo',
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from OpenRouter';
+	}
+
+	private async _callTogether(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.together.xyz/v1/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model || 'meta-llama/Llama-2-70b-chat-hf',
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Together AI API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from Together AI';
+	}
+
+	private async _callGroq(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model || 'mixtral-8x7b-32768',
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from Groq';
+	}
+
+	private async _callHuggingFace(type: string, data: any, options: any): Promise<string> {
+		const endpoint = `https://api-inference.huggingface.co/models/${options.model || 'microsoft/DialoGPT-large'}`;
+		
+		const prompt = type === 'chat' ? 
+			data.messages.map((m: any) => `${m.role}: ${m.content}`).join('\n') :
+			this._buildPromptForType(type, data);
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				inputs: prompt,
+				parameters: {
+					temperature: options.temperature,
+					max_new_tokens: options.maxTokens
+				}
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Hugging Face API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result[0]?.generated_text || result.generated_text || 'No response from Hugging Face';
+	}
+
+	private async _callDeepInfra(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.deepinfra.com/v1/openai/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model || 'meta-llama/Llama-2-70b-chat-hf',
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`DeepInfra API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from DeepInfra';
+	}
+
+	private async _callPerplexity(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.perplexity.ai/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model || 'llama-3-sonar-small-32k-online',
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Perplexity API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from Perplexity';
+	}
+
+	private async _callReplicate(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.replicate.com/v1/predictions';
+		
+		const prompt = type === 'chat' ? 
+			data.messages.map((m: any) => `${m.role}: ${m.content}`).join('\n') :
+			this._buildPromptForType(type, data);
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Token ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				version: options.model || 'meta/llama-2-70b-chat',
+				input: {
+					prompt,
+					temperature: options.temperature,
+					max_tokens: options.maxTokens
+				}
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Replicate API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		// Replicate is async, so this is a simplified implementation
+		return result.output?.join('') || 'Processing request with Replicate...';
+	}
+
+	private async _callAI21(type: string, data: any, options: any): Promise<string> {
+		const endpoint = `https://api.ai21.com/studio/v1/${options.model || 'j2-ultra'}/complete`;
+		
+		const prompt = type === 'chat' ? 
+			data.messages.map((m: any) => `${m.role}: ${m.content}`).join('\n') :
+			this._buildPromptForType(type, data);
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				prompt,
+				temperature: options.temperature,
+				maxTokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`AI21 API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.completions[0]?.data?.text || 'No response from AI21';
+	}
+
+	private async _callFireworks(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.fireworks.ai/inference/v1/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model || 'accounts/fireworks/models/llama-v2-70b-chat',
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Fireworks API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from Fireworks';
+	}
+
+	private async _callGitHubCopilot(type: string, data: any, options: any): Promise<string> {
+		// GitHub Copilot integration would require special OAuth handling
+		// This is a placeholder implementation
+		this.logService.info('GitHub Copilot request', { type, model: options.model });
+		
+		// For now, return a mock response indicating Copilot integration needed
+		return 'GitHub Copilot integration requires special authentication setup. Please use the GitHub Copilot extension directly.';
 	}
 
 	private async _callLocalModel(type: string, data: any, options: any): Promise<string> {
