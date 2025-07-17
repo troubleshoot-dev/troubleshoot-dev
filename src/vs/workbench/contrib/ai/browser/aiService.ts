@@ -9,6 +9,8 @@ import { IAIService, IAIProvider, IAIMessage, IAICompletion, IAIEdit, IAICodeCon
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { ILogService } from 'vs/platform/log/common/log';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
+import { IAIProviderRegistry } from 'vs/workbench/contrib/ai/common/aiProviderRegistry';
+import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 
 export class AIService extends Disposable implements IAIService {
 	declare readonly _serviceBrand: undefined;
@@ -21,7 +23,9 @@ export class AIService extends Disposable implements IAIService {
 
 	constructor(
 		@IConfigurationService private readonly configurationService: IConfigurationService,
-		@ILogService private readonly logService: ILogService
+		@ILogService private readonly logService: ILogService,
+		@IAIProviderRegistry private readonly providerRegistry: IAIProviderRegistry,
+		@IStorageService private readonly storageService: IStorageService
 	) {
 		super();
 		this._initializeProviders();
@@ -30,37 +34,53 @@ export class AIService extends Disposable implements IAIService {
 				this._initializeProviders();
 			}
 		}));
+		this._register(this.providerRegistry.onDidChangeProviders(() => {
+			this._initializeProviders();
+		}));
 	}
 
 	private _initializeProviders(): void {
 		const config = this.configurationService.getValue<any>('troubleshoot.ai');
 		
-		this._providers = [
-			{
-				id: 'openai',
-				name: 'OpenAI GPT',
-				description: 'OpenAI GPT models for code assistance',
-				supportsChat: true,
-				supportsCompletion: true,
-				supportsEditing: true
-			},
-			{
-				id: 'anthropic',
-				name: 'Anthropic Claude',
-				description: 'Anthropic Claude for code analysis',
-				supportsChat: true,
-				supportsCompletion: true,
-				supportsEditing: true
-			},
-			{
-				id: 'local',
-				name: 'Local Model',
-				description: 'Local AI model for privacy',
-				supportsChat: true,
-				supportsCompletion: true,
-				supportsEditing: false
-			}
-		];
+		// Get providers from registry
+		this._providers = this.providerRegistry.getAllProviders().map(provider => ({
+			id: provider.id,
+			name: provider.name,
+			description: provider.description,
+			supportsChat: provider.capabilities.supportsChat,
+			supportsCompletion: provider.capabilities.supportsCompletion,
+			supportsEditing: provider.capabilities.supportsEditing
+		}));
+
+		// If no providers are registered, add default ones
+		if (this._providers.length === 0) {
+			this._providers = [
+				{
+					id: 'openai',
+					name: 'OpenAI GPT',
+					description: 'OpenAI GPT models for code assistance',
+					supportsChat: true,
+					supportsCompletion: true,
+					supportsEditing: true
+				},
+				{
+					id: 'anthropic',
+					name: 'Anthropic Claude',
+					description: 'Anthropic Claude for code analysis',
+					supportsChat: true,
+					supportsCompletion: true,
+					supportsEditing: true
+				},
+				{
+					id: 'local',
+					name: 'Local Model',
+					description: 'Local AI model for privacy',
+					supportsChat: true,
+					supportsCompletion: true,
+					supportsEditing: false
+				}
+			];
+		}
 
 		// Set active provider from config
 		const activeProviderId = config?.provider || 'openai';
@@ -185,21 +205,271 @@ export class AIService extends Disposable implements IAIService {
 	}
 
 	private async _makeAIRequest(type: string, data: any): Promise<string> {
-		// This is a mock implementation - in real implementation, this would call actual AI APIs
-		this.logService.info(`AI ${type} request`, data);
+		const config = this.configurationService.getValue<any>('troubleshoot.ai');
+		const providerId = this._activeProvider?.id;
+		
+		if (!providerId) {
+			throw new Error('No AI provider selected');
+		}
 
-		// Simulate AI response based on request type
+		// Get provider-specific configuration
+		const providerConfig = config?.[providerId] || {};
+		const apiKey = providerConfig.apiKey || config?.apiKey; // Fallback to legacy apiKey
+		const model = providerConfig.model || config?.model || this._getDefaultModel(providerId);
+		const temperature = config?.temperature || 0.7;
+		const maxTokens = config?.maxTokens || 2000;
+		const timeout = config?.requestTimeout || 30000;
+		
+		// Check if API key is required
+		if (!apiKey && !['local', 'ollama'].includes(providerId)) {
+			throw new Error(`API key required for ${this._activeProvider?.name}. Please configure it in settings.`);
+		}
+
+		try {
+			const requestOptions = {
+				apiKey,
+				model,
+				temperature,
+				maxTokens,
+				timeout
+			};
+
+			switch (providerId) {
+				case 'openai':
+					return await this._callOpenAI(type, data, requestOptions);
+				case 'anthropic':
+					return await this._callAnthropic(type, data, requestOptions);
+				case 'gemini':
+					return await this._callGemini(type, data, requestOptions);
+				case 'mistral':
+					return await this._callMistral(type, data, requestOptions);
+				case 'ollama':
+					return await this._callOllama(type, data, requestOptions);
+				case 'local':
+					return await this._callLocalModel(type, data, requestOptions);
+				default:
+					return this._getMockResponse(type, data);
+			}
+		} catch (error) {
+			this.logService.error('AI request failed', error);
+			
+			// Retry logic
+			const retryAttempts = config?.retryAttempts || 3;
+			if (data._retryCount < retryAttempts) {
+				data._retryCount = (data._retryCount || 0) + 1;
+				this.logService.info(`Retrying AI request (attempt ${data._retryCount}/${retryAttempts})`);
+				await new Promise(resolve => setTimeout(resolve, 1000 * data._retryCount)); // Exponential backoff
+				return this._makeAIRequest(type, data);
+			}
+			
+			throw new Error(`AI request failed after ${retryAttempts} attempts: ${error.message}`);
+		}
+	}
+
+	private _getDefaultModel(providerId: string): string {
+		const defaults: Record<string, string> = {
+			'openai': 'gpt-3.5-turbo',
+			'anthropic': 'claude-3-sonnet-20240229',
+			'gemini': 'gemini-pro',
+			'mistral': 'mistral-medium',
+			'ollama': 'codellama',
+			'local': 'transformers.js'
+		};
+		return defaults[providerId] || 'gpt-3.5-turbo';
+	}
+
+	private async _callOpenAI(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.openai.com/v1/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model,
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from OpenAI';
+	}
+
+	private async _callAnthropic(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.anthropic.com/v1/messages';
+		
+		const prompt = type === 'chat' ? 
+			data.messages.map((m: any) => `${m.role}: ${m.content}`).join('\n') :
+			this._buildPromptForType(type, data);
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'x-api-key': options.apiKey,
+				'Content-Type': 'application/json',
+				'anthropic-version': '2023-06-01'
+			},
+			body: JSON.stringify({
+				model: options.model.includes('claude') ? options.model : 'claude-3-sonnet-20240229',
+				max_tokens: options.maxTokens,
+				messages: [{ role: 'user', content: prompt }]
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.content[0]?.text || 'No response from Anthropic';
+	}
+
+	private async _callGemini(type: string, data: any, options: any): Promise<string> {
+		const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${options.model.includes('gemini') ? options.model : 'gemini-pro'}:generateContent?key=${options.apiKey}`;
+		
+		const prompt = type === 'chat' ? 
+			data.messages.map((m: any) => `${m.role}: ${m.content}`).join('\n') :
+			this._buildPromptForType(type, data);
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				contents: [{
+					parts: [{ text: prompt }]
+				}],
+				generationConfig: {
+					temperature: options.temperature,
+					maxOutputTokens: options.maxTokens
+				}
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.candidates[0]?.content?.parts[0]?.text || 'No response from Gemini';
+	}
+
+	private async _callMistral(type: string, data: any, options: any): Promise<string> {
+		const endpoint = 'https://api.mistral.ai/v1/chat/completions';
+		
+		let messages: any[] = [];
+		if (type === 'chat') {
+			messages = data.messages;
+		} else {
+			messages = [{ role: 'user', content: this._buildPromptForType(type, data) }];
+		}
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${options.apiKey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model.includes('mistral') ? options.model : 'mistral-medium',
+				messages,
+				temperature: options.temperature,
+				max_tokens: options.maxTokens
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Mistral API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.choices[0]?.message?.content || 'No response from Mistral';
+	}
+
+	private async _callOllama(type: string, data: any, options: any): Promise<string> {
+		const config = this.configurationService.getValue<any>('troubleshoot.ai');
+		const ollamaUrl = config?.ollama?.url || 'http://localhost:11434';
+		const endpoint = `${ollamaUrl}/api/generate`;
+		
+		const prompt = type === 'chat' ? 
+			data.messages.map((m: any) => `${m.role}: ${m.content}`).join('\n') :
+			this._buildPromptForType(type, data);
+
+		const response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				model: options.model || 'codellama',
+				prompt,
+				stream: false
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		return result.response || 'No response from Ollama';
+	}
+
+	private async _callLocalModel(type: string, data: any, options: any): Promise<string> {
+		// Placeholder for local model integration
+		// This would integrate with local AI models like Transformers.js or ONNX
+		this.logService.info('Local model request', { type, model: options.model });
+		return this._getMockResponse(type, data);
+	}
+
+	private _buildPromptForType(type: string, data: any): string {
+		switch (type) {
+			case 'completion':
+				return data.prompt;
+			case 'edit':
+				return data.prompt;
+			case 'explain':
+				return data.prompt;
+			case 'generate':
+				return data.prompt;
+			case 'debug':
+				return data.prompt;
+			case 'analyzeLogs':
+				return data.prompt;
+			default:
+				return data.prompt || 'No prompt provided';
+		}
+	}
+
+	private _getMockResponse(type: string, data: any): string {
+		// Fallback mock responses
 		switch (type) {
 			case 'chat':
 				return 'I can help you with that! Let me analyze your code and provide assistance.';
 			case 'completion':
 				return 'console.log("AI completion");';
 			case 'edit':
-				return data.context.content.replace(/TODO/g, '// Completed by AI');
+				return data.context?.content?.replace(/TODO/g, '// Completed by AI') || 'Edited code';
 			case 'explain':
 				return 'This code defines a function that performs the specified operation.';
 			case 'generate':
-				return `// Generated ${data.language} code\nfunction example() {\n    return "Hello World";\n}`;
+				return `// Generated ${data.language || 'JavaScript'} code\nfunction example() {\n    return "Hello World";\n}`;
 			case 'debug':
 				return 'The error appears to be caused by a null reference. Consider adding null checks.';
 			case 'analyzeLogs':

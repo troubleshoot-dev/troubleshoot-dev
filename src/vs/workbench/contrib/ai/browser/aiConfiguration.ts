@@ -22,14 +22,36 @@ configurationRegistry.registerConfiguration({
 		},
 		'troubleshoot.ai.provider': {
 			type: 'string',
-			enum: ['openai', 'anthropic', 'local'],
+			enum: ['openai', 'anthropic', 'gemini', 'mistral', 'ollama', 'local'],
 			enumDescriptions: [
 				localize('providerOpenAI', 'OpenAI GPT models'),
 				localize('providerAnthropic', 'Anthropic Claude models'),
+				localize('providerGemini', 'Google Gemini models'),
+				localize('providerMistral', 'Mistral AI models'),
+				localize('providerOllama', 'Ollama local models'),
 				localize('providerLocal', 'Local AI model')
 			],
 			default: 'openai',
 			description: localize('aiProvider', 'AI provider to use for assistance')
+		},
+		'troubleshoot.ai.autoDetectProvider': {
+			type: 'boolean',
+			default: true,
+			description: localize('aiAutoDetectProvider', 'Automatically detect which AI provider an API key belongs to')
+		},
+		'troubleshoot.ai.temperature': {
+			type: 'number',
+			default: 0.7,
+			minimum: 0,
+			maximum: 2,
+			description: localize('aiTemperature', 'Temperature setting for AI responses (higher values = more creative, lower values = more deterministic)')
+		},
+		'troubleshoot.ai.maxTokens': {
+			type: 'number',
+			default: 2000,
+			minimum: 100,
+			maximum: 32000,
+			description: localize('aiMaxTokens', 'Maximum number of tokens to generate in AI responses')
 		},
 		'troubleshoot.ai.apiKey': {
 			type: 'string',
@@ -121,6 +143,106 @@ configurationRegistry.registerConfiguration({
 			type: 'boolean',
 			default: true,
 			description: localize('aiPerformanceAnalysis', 'Enable AI performance analysis and optimization suggestions')
+		},
+		// Provider-specific API keys (stored securely)
+		'troubleshoot.ai.openai.apiKey': {
+			type: 'string',
+			default: '',
+			description: localize('aiOpenAIApiKey', 'OpenAI API key'),
+			scope: 1 // User scope only for security
+		},
+		'troubleshoot.ai.anthropic.apiKey': {
+			type: 'string',
+			default: '',
+			description: localize('aiAnthropicApiKey', 'Anthropic API key'),
+			scope: 1
+		},
+		'troubleshoot.ai.gemini.apiKey': {
+			type: 'string',
+			default: '',
+			description: localize('aiGeminiApiKey', 'Google Gemini API key'),
+			scope: 1
+		},
+		'troubleshoot.ai.mistral.apiKey': {
+			type: 'string',
+			default: '',
+			description: localize('aiMistralApiKey', 'Mistral AI API key'),
+			scope: 1
+		},
+		// Provider-specific models
+		'troubleshoot.ai.openai.model': {
+			type: 'string',
+			enum: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'gpt-4o'],
+			default: 'gpt-3.5-turbo',
+			description: localize('aiOpenAIModel', 'OpenAI model to use')
+		},
+		'troubleshoot.ai.anthropic.model': {
+			type: 'string',
+			enum: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+			default: 'claude-3-sonnet-20240229',
+			description: localize('aiAnthropicModel', 'Anthropic Claude model to use')
+		},
+		'troubleshoot.ai.gemini.model': {
+			type: 'string',
+			enum: ['gemini-pro', 'gemini-pro-vision', 'gemini-ultra'],
+			default: 'gemini-pro',
+			description: localize('aiGeminiModel', 'Google Gemini model to use')
+		},
+		'troubleshoot.ai.mistral.model': {
+			type: 'string',
+			enum: ['mistral-tiny', 'mistral-small', 'mistral-medium', 'mistral-large'],
+			default: 'mistral-medium',
+			description: localize('aiMistralModel', 'Mistral AI model to use')
+		},
+		'troubleshoot.ai.ollama.model': {
+			type: 'string',
+			enum: ['codellama', 'llama3', 'mistral', 'phi3'],
+			default: 'codellama',
+			description: localize('aiOllamaModel', 'Ollama model to use')
+		},
+		'troubleshoot.ai.ollama.url': {
+			type: 'string',
+			default: 'http://localhost:11434',
+			description: localize('aiOllamaUrl', 'Ollama server URL')
+		},
+		// Local model settings
+		'troubleshoot.ai.local.modelPath': {
+			type: 'string',
+			default: '',
+			description: localize('aiLocalModelPath', 'Path to local AI model files')
+		},
+		'troubleshoot.ai.local.model': {
+			type: 'string',
+			enum: ['transformers.js', 'onnx', 'webllm'],
+			default: 'transformers.js',
+			description: localize('aiLocalModel', 'Local AI model type to use')
+		},
+		// Advanced settings
+		'troubleshoot.ai.requestTimeout': {
+			type: 'number',
+			default: 30000,
+			minimum: 5000,
+			maximum: 120000,
+			description: localize('aiRequestTimeout', 'Request timeout in milliseconds')
+		},
+		'troubleshoot.ai.retryAttempts': {
+			type: 'number',
+			default: 3,
+			minimum: 1,
+			maximum: 10,
+			description: localize('aiRetryAttempts', 'Number of retry attempts for failed requests')
+		},
+		'troubleshoot.ai.storeHistory': {
+			type: 'boolean',
+			default: true,
+			description: localize('aiStoreHistory', 'Store AI request and response history locally')
+		},
+		'troubleshoot.ai.historyRetentionDays': {
+			type: 'number',
+			default: 30,
+			minimum: 1,
+			maximum: 365,
+			description: localize('aiHistoryRetentionDays', 'Number of days to retain AI request history')
 		}
 	}
 });
