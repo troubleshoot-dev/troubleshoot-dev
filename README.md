@@ -45,16 +45,48 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 - **Auto-Detection:** Automatically detect provider from API key
 - **Batch Operations:** Test multiple providers simultaneously
 
-### 💬 **Intelligent AI Features**
+### 🤖 **Next-Generation AI Features**
+
+#### 🔧 **BugBot - Autonomous Bug Detection & Fixes**
+- **Real-Time Bug Detection:** Continuously scans code for potential issues
+- **Automated Fix Suggestions:** Provides instant fixes with explanations
+- **Pattern Recognition:** Learns from codebase patterns to prevent recurring bugs
+- **Multi-Language Support:** Works across all programming languages
+- **Integration Testing:** Validates fixes before suggesting changes
+
+#### 🚁 **Background Agents - Autonomous Code Assistants**
+- **Continuous Code Optimization:** Runs in background, improving code quality
+- **Dependency Management:** Automatically updates and manages dependencies
+- **Performance Monitoring:** Identifies and suggests performance improvements
+- **Security Scanning:** Continuous security vulnerability detection
+- **Documentation Generation:** Auto-generates and updates documentation
+
+#### ⚡ **Unlimited Tab Completions - Native Autocomplete Engine**
+- **Unlimited Suggestions:** No limits on completion requests (vs competitors' caps)
+- **Native Performance:** Built-in engine, no external API delays
+- **Context-Aware:** Understands entire codebase context
+- **Multi-Line Completions:** Suggests entire functions and code blocks
+- **Learning Algorithm:** Adapts to your coding style and patterns
+
+#### 🧠 **"Max Mode" - Extended Context & Complex Reasoning**
+- **Extended Context Windows:** Handle massive codebases (100K+ lines)
+- **Complex Reasoning Tasks:** Multi-step problem solving and architecture planning
+- **Cross-File Analysis:** Understands relationships across entire projects
+- **Advanced Refactoring:** Large-scale code restructuring with safety checks
+- **Enterprise-Scale Support:** Optimized for large team codebases
+
+### 💬 **Enhanced AI Features Matrix**
 | 🤖 **AI Chat Assistant**     | 🚀 **AI Code Completion**         | ⚡ **AI Code Editing**            |
 |-----------------------------|-----------------------------------|-----------------------------------|
-| Context-aware chat with 17+ models | Multi-provider code suggestions | Natural language refactoring |
-| Provider switching mid-conversation | Performance-optimized completions | Cross-provider editing capabilities |
+| Context-aware chat with 17+ models | **Unlimited completions** with native engine | Natural language refactoring |
+| Provider switching mid-conversation | **Multi-line suggestions** with learning | Cross-provider editing capabilities |
+| **Max Mode** extended context | **Background optimization** | **BugBot integration** |
 
 | 🔍 **AI Code Analysis**      | 🖥️ **AI Terminal Assistant**      | 📊 **AI Log Analysis**            |
 |-----------------------------|-----------------------------------|-----------------------------------|
 | Multi-model code explanations | Shell commands from natural language | Advanced log parsing & insights |
-| Provider-specific optimizations | Context-aware terminal assistance | Pattern detection across providers |
+| **Autonomous bug detection** | Context-aware terminal assistance | Pattern detection across providers |
+| **Performance monitoring** | **Background agents** support | **Real-time issue detection** |
 
 ### 🎛️ **Professional AI Management**
 - **Provider Selection UI:** Intuitive provider configuration
@@ -81,10 +113,15 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 | **🤖 AI Providers** | **17+ Providers** (OpenAI, Claude, Gemini, Groq, etc.) | **Limited** (Primarily OpenAI/Claude) |
 | **💰 Cost** | **100% Free & Open Source** | **$20/month Pro Plan** |
 | **🔐 Privacy** | **Full Local AI Support** + Privacy Modes | **Cloud-dependent** |
+| **🔧 Bug Detection** | **🚀 BugBot** - Autonomous real-time detection & fixes | **Manual** - Basic error highlighting |
+| **🚁 Background Agents** | **🚀 Autonomous Assistants** - Continuous optimization | **None** - Manual operations only |
+| **⚡ Tab Completions** | **🚀 Unlimited Native Engine** - No caps, instant response | **Limited** - API rate limits, delays |
+| **🧠 Context Windows** | **🚀 "Max Mode"** - 100K+ lines, complex reasoning | **Standard** - Limited context size |
+| **📈 Codebase Support** | **🚀 Enterprise-Scale** - Optimized for large projects | **Basic** - Performance issues on large codebases |
+| **🎯 Code Quality** | **🚀 Higher Quality** - Multi-provider optimization | **Standard** - Single provider limitations |
+| **🔍 Indexing** | **🚀 Consistent & Fast** - Advanced indexing algorithms | **Inconsistent** - User-reported indexing issues |
 | **🛠️ Customization** | **Complete Control** - Fork & modify | **Closed Source** - No customization |
 | **🔑 API Management** | **Advanced Key Management** - Auto-detect, testing, batch ops | **Basic** - Manual key entry only |
-| **⚡ Performance** | **Multi-Provider Optimization** - Choose fastest model | **Single Provider** - Limited optimization |
-| **🎯 Model Selection** | **Granular Control** - Choose specific models per task | **Limited** - Provider's default models |
 | **📊 Monitoring** | **Real-Time Metrics** - Response times, error tracking | **Basic** - No performance insights |
 | **🔄 Provider Switching** | **Seamless** - Switch mid-conversation | **Manual** - Restart required |
 | **🏠 Local Models** | **Full Support** - Ollama, Transformers.js, ONNX | **Limited** - Basic local support |
@@ -97,23 +134,31 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 - **>troubleshoot.dev:** Completely free forever
 - **Cursor:** $20/month for Pro features (expensive for teams)
 
-#### **2. 🔐 Privacy Superiority**
+#### **2. 🤖 Revolutionary AI Features**
+- **>troubleshoot.dev:** BugBot, Background Agents, Unlimited Completions, Max Mode
+- **Cursor:** Basic AI chat and completion only
+
+#### **3. 🔐 Privacy Superiority**
 - **>troubleshoot.dev:** Full offline AI processing with local models
 - **Cursor:** Requires cloud connectivity, data leaves your machine
 
-#### **3. 🤖 AI Provider Flexibility**
+#### **4. ⚡ Performance & Scale**
+- **>troubleshoot.dev:** Unlimited completions, 100K+ context, enterprise-scale optimization
+- **Cursor:** Rate-limited completions, performance issues on large codebases
+
+#### **5. 🎯 Code Quality & Intelligence**
+- **>troubleshoot.dev:** Higher quality suggestions, consistent indexing, autonomous optimization
+- **Cursor:** Standard quality, inconsistent indexing, manual operations
+
+#### **6. 🤖 AI Provider Flexibility**
 - **>troubleshoot.dev:** 17+ providers including cutting-edge options like Groq (ultra-fast), Perplexity (search-enhanced)
 - **Cursor:** Stuck with limited provider options
 
-#### **4. 🛠️ Developer Freedom**
+#### **7. 🛠️ Developer Freedom**
 - **>troubleshoot.dev:** Open source - modify, extend, contribute
 - **Cursor:** Closed source - vendor lock-in, no customization
 
-#### **5. ⚡ Performance Optimization**
-- **>troubleshoot.dev:** Choose the fastest provider for each task (Groq for speed, Claude for reasoning)
-- **Cursor:** Limited to their provider selection
-
-#### **6. 🎯 Professional Features**
+#### **8. 🎯 Professional Features**
 - **>troubleshoot.dev:** Advanced API key management, real-time testing, performance monitoring
 - **Cursor:** Basic configuration options
 
