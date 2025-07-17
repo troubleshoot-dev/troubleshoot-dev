@@ -47,7 +47,7 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 
 ### 🤖 **Next-Generation AI Features**
 
-#### 🔧 **BugBot - Autonomous Bug Detection & Fixes**
+#### 🔧 **BugRat - Autonomous Bug Detection & Fixes**
 - **Real-Time Bug Detection:** Continuously scans code for potential issues
 - **Automated Fix Suggestions:** Provides instant fixes with explanations
 - **Pattern Recognition:** Learns from codebase patterns to prevent recurring bugs
@@ -68,7 +68,7 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 - **Multi-Line Completions:** Suggests entire functions and code blocks
 - **Learning Algorithm:** Adapts to your coding style and patterns
 
-#### 🧠 **"Max Mode" - Extended Context & Complex Reasoning**
+#### 🧠 **"Soop Mode" - Extended Context & Complex Reasoning**
 - **Extended Context Windows:** Handle massive codebases (100K+ lines)
 - **Complex Reasoning Tasks:** Multi-step problem solving and architecture planning
 - **Cross-File Analysis:** Understands relationships across entire projects
@@ -80,7 +80,7 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 |-----------------------------|-----------------------------------|-----------------------------------|
 | Context-aware chat with 17+ models | **Unlimited completions** with native engine | Natural language refactoring |
 | Provider switching mid-conversation | **Multi-line suggestions** with learning | Cross-provider editing capabilities |
-| **Max Mode** extended context | **Background optimization** | **BugBot integration** |
+| **Soop Mode** extended context | **Background optimization** | **BugRat integration** |
 
 | 🔍 **AI Code Analysis**      | 🖥️ **AI Terminal Assistant**      | 📊 **AI Log Analysis**            |
 |-----------------------------|-----------------------------------|-----------------------------------|
@@ -113,10 +113,10 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 | **🤖 AI Providers** | **17+ Providers** (OpenAI, Claude, Gemini, Groq, etc.) | **Limited** (Primarily OpenAI/Claude) |
 | **💰 Cost** | **100% Free & Open Source** | **$20/month Pro Plan** |
 | **🔐 Privacy** | **Full Local AI Support** + Privacy Modes | **Cloud-dependent** |
-| **🔧 Bug Detection** | **🚀 BugBot** - Autonomous real-time detection & fixes | **Manual** - Basic error highlighting |
+| **🔧 Bug Detection** | **🚀 BugRat** - Autonomous real-time detection & fixes | **Manual** - Basic error highlighting |
 | **🚁 Background Agents** | **🚀 Autonomous Assistants** - Continuous optimization | **None** - Manual operations only |
 | **⚡ Tab Completions** | **🚀 Unlimited Native Engine** - No caps, instant response | **Limited** - API rate limits, delays |
-| **🧠 Context Windows** | **🚀 "Max Mode"** - 100K+ lines, complex reasoning | **Standard** - Limited context size |
+| **🧠 Context Windows** | **🚀 "Soop Mode"** - 100K+ lines, complex reasoning | **Standard** - Limited context size |
 | **📈 Codebase Support** | **🚀 Enterprise-Scale** - Optimized for large projects | **Basic** - Performance issues on large codebases |
 | **🎯 Code Quality** | **🚀 Higher Quality** - Multi-provider optimization | **Standard** - Single provider limitations |
 | **🔍 Indexing** | **🚀 Consistent & Fast** - Advanced indexing algorithms | **Inconsistent** - User-reported indexing issues |
@@ -135,7 +135,7 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 - **Cursor:** $20/month for Pro features (expensive for teams)
 
 #### **2. 🤖 Revolutionary AI Features**
-- **>troubleshoot.dev:** BugBot, Background Agents, Unlimited Completions, Max Mode
+- **>troubleshoot.dev:** BugRat, Background Agents, Unlimited Completions, Soop Mode
 - **Cursor:** Basic AI chat and completion only
 
 #### **3. 🔐 Privacy Superiority**
