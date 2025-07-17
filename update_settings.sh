@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # shellcheck disable=SC1091,2148
 
 DEFAULT_TRUE="'default': true"

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-APP_NAME="${APP_NAME:-VSCodium}"
+APP_NAME="${APP_NAME:-troubleshoot.dev}"
 APP_NAME_LC="$( echo "${APP_NAME}" | awk '{print tolower($0)}' )"
-ASSETS_REPOSITORY="${ASSETS_REPOSITORY:-VSCodium/vscodium}"
-BINARY_NAME="${BINARY_NAME:-codium}"
-GH_REPO_PATH="${GH_REPO_PATH:-VSCodium/vscodium}"
-ORG_NAME="${ORG_NAME:-VSCodium}"
+ASSETS_REPOSITORY="${ASSETS_REPOSITORY:-troubleshoot-dev/troubleshoot-dev}"
+BINARY_NAME="${BINARY_NAME:-troubleshoot-dev}"
+GH_REPO_PATH="${GH_REPO_PATH:-troubleshoot-dev/troubleshoot-dev}"
+ORG_NAME="${ORG_NAME:-troubleshoot-dev}"
 
 # All common functions can be added to this file
 
@@ -15,7 +15,7 @@ apply_patch() {
   fi
   # grep '^+++' "$1"  | sed -e 's#+++ [ab]/#./vscode/#' | while read line; do shasum -a 256 "${line}"; done
 
-  cp $1{,.bak}
+  cp "$1" "$1.bak"
 
   replace "s|!!APP_NAME!!|${APP_NAME}|g" "$1"
   replace "s|!!APP_NAME_LC!!|${APP_NAME_LC}|g" "$1"
