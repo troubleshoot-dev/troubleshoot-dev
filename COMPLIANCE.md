@@ -20,21 +20,29 @@ This document outlines the compliance actions taken to ensure proper adherence t
 
 ## Restricted Branding Removal
 
-The following branding references need to be addressed:
+The following branding references have been addressed:
 
-- [ ] **VSCodium references**:
-  - Multiple references in resource files (VisualElementsManifest.xml, code.desktop, code.appdata.xml)
+- [x] **Some VSCodium references updated**:
+  - ✅ Updated keywords in Linux desktop files
+  - ✅ Updated URLs and descriptions in some appdata.xml files
+  - ✅ Created update-branding.ps1 script for systematic updates
+  - ✅ Updated ShortDisplayName in VisualElementsManifest.xml files
+
+The following branding references still need to be addressed:
+
+- [ ] **Remaining VSCodium references**:
   - References in setup-fork.sh and other scripts
-  - URLs pointing to vscodium.com
+  - Some URLs still pointing to vscodium.com
+  - Icon references in various files
 
 - [ ] **Microsoft references**:
-  - References to Microsoft in telemetry blocking scripts
+  - References to Microsoft in telemetry blocking scripts (partially addressed)
   - References to Microsoft Azure OpenAI Service (acceptable as service name)
   - References to Microsoft's VS Code in descriptive text
 
 - [ ] **Visual Studio Code references**:
-  - References in README.md and keywords
-  - References in appdata.xml descriptions
+  - Some references in README.md and keywords
+  - Some references in appdata.xml descriptions
 
 ## Extensions and Dependencies
 
