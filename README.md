@@ -208,11 +208,25 @@ Open Sans font, pastel gradients, and blinking animation are included for local 
 
 ---
 
+## 📄 License & Attribution
+
+>troubleshoot.dev is licensed under the **MIT License**.
+
+This project is a fork of [VSCodium](https://github.com/VSCodium/vscodium), an open-source project that provides free/libre binaries of VS Code without Microsoft's branding, telemetry, and licensing. We maintain the same MIT license terms while adding our own AI-powered features.
+
+- **Original work**: Copyright (c) VSCodium contributors, Peter Squicciarini, and Microsoft Corporation
+- **Modified work**: Copyright (c) troubleshoot.dev contributors
+
+See the [LICENSE](LICENSE) file for the complete MIT license text.
+
+---
+
 ## 📚 Learn More
 
 - [Documentation](https://github.com/troubleshoot-dev/troubleshoot-dev/wiki)
 - [Contributing Guide](https://github.com/troubleshoot-dev/troubleshoot-dev/blob/master/CONTRIBUTING.md)
 - [Issues & Feedback](https://github.com/troubleshoot-dev/troubleshoot-dev/issues)
+- [Compliance](https://github.com/troubleshoot-dev/troubleshoot-dev/blob/master/COMPLIANCE.md)
 
 ---
 
